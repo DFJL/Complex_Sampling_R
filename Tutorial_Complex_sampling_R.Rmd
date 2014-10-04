@@ -1,10 +1,29 @@
 ---
 title: "Introducción al muestreo complejo en R"
 author: "Felipe Jiménez"
-date: "Saturday, October 04, 2014"
+date: '`r as.character(format(Sys.Date(), format="%B %d, %Y"))`'
 output:
   html_document:
     theme: spacelab
+    toc: yes
+  pdf_document:
+    toc: yes
 ---
 
-#Cálculo de muestreo Complejo en R
+#Tutorial para Muestreo Complejo en R
+
+##Introducción
+
+El presente tutorial tiene como objetivo principal el introducir al usuario en el muestreo complejo en el ambiente de programación analítica R.Se hará énfasis en el cálculo de errores muestrales con el paquete ` survey ` pero también se hará referencia a otros paquetes para selección de muestras.
+
+###Configuración de R y Rstudio
+
+El primer paso para iniciar con el tutorial es instalar [la consola de R](http://cran.rstudio.com/)(En el triste caso de aún no contar con él).
+
+Posteriormente, es altamente recomendado utilizar el IDE [Rstudio](http://www.rstudio.com/products/rstudio/download/), para una mayor facilidad en el desarrollo de las aplicaciones.
+
+Una vez con la instalación de nuestras dos aplicaciones, procedemos a crear un nuevo documento [Rmarkdown](http://rmarkdown.rstudio.com/), como sigue:
+
+
+![alt text](https://www.dropbox.com/s/aes3xp4xs2zrpx7/Captura1.png?dl=1)
+
