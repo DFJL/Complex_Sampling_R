@@ -1,0 +1,10 @@
+---
+title: "Introducción al muestreo complejo en R"
+author: "Felipe Jiménez"
+date: "Saturday, October 04, 2014"
+output:
+  html_document:
+    theme: spacelab
+---
+
+#Cálculo de muestreo Complejo en R
