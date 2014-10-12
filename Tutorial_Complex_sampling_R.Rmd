@@ -1,29 +1,363 @@
 ---
-title: "Introducción al muestreo complejo en R"
-author: "Felipe Jiménez"
-date: '`r as.character(format(Sys.Date(), format="%B %d, %Y"))`'
 output:
-  html_document:
-    theme: spacelab
-    toc: yes
-  pdf_document:
-    toc: yes
+  knitrBootstrap::bootstrap_document:
+    title: "Tutorial de muestreo en R"
+    theme: flatly
+    highlight: github
+    theme.chooser: TRUE
+    highlight.chooser: TRUE
 ---
-
-#Tutorial para Muestreo Complejo en R
+#Tutorial de muestreo en R
 
 ##Introducción
 
-El presente tutorial tiene como objetivo principal el introducir al usuario en el muestreo complejo en el ambiente de programación analítica R.Se hará énfasis en el cálculo de errores muestrales con el paquete ` survey ` pero también se hará referencia a otros paquetes para selección de muestras.
+El presente tutorial tiene como objetivo principal el introducir al usuario en el muestreo simple y  complejo en el ambiente de programación analítica R.Se hará énfasis en el cálculo de errores muestrales con el paquete ` survey ` pero también se hará referencia a otros paquetes para selección de muestras.     
 
-###Configuración de R y Rstudio
+##Configuración de R y Rstudio
 
-El primer paso para iniciar con el tutorial es instalar [la consola de R](http://cran.rstudio.com/)(En el triste caso de aún no contar con él).
+El primer paso para iniciar con el tutorial es instalar [la consola de R](http://cran.rstudio.com/)(En el triste caso de aún no contar con él).   
 
-Posteriormente, es altamente recomendado utilizar el IDE [Rstudio](http://www.rstudio.com/products/rstudio/download/), para una mayor facilidad en el desarrollo de las aplicaciones.
+Posteriormente, es altamente recomendado utilizar el IDE [Rstudio](http://www.rstudio.com/products/rstudio/download/), para una mayor facilidad en el desarrollo de las aplicaciones.    
 
-Una vez con la instalación de nuestras dos aplicaciones, procedemos a crear un nuevo documento [Rmarkdown](http://rmarkdown.rstudio.com/), como sigue:
+Una vez con la instalación de nuestras dos aplicaciones, procedemos a crear un nuevo documento [Rmarkdown](http://rmarkdown.rstudio.com/) Y escogemos las opciones por defecto, como se ilustra en la siguiente figura:
+
+![Rmarkdown](https://www.dropbox.com/s/aes3xp4xs2zrpx7/Captura1.png?dl=1)
+
+Una vez abierto el nuevo documento R markdown, guardarlo y a continuación borrar el código que trae por defecto como ejemplo, a excepción del encabezado encerrado con tres slash (`---`) al inicio del documento.
+
+----------------------------------------------------------------------------- 
+
+## Ejercicios
+
+### Ejercicio 1
+
+#### Selección de muestras simples
+
+**Muestreo irrestricto Aleatorio[(MIA)](http://www.virtual.unal.edu.co/cursos/sedes/manizales/4030006/lecciones/capituloseis/6_5.html)**:    
+
+El R Base contiene la útil función `sample` en la que se pueden obtener muestras aleatorias con o sin reemplazo de manera sencilla.
+
+Vamos a cargar un dataset para ejemplificar:
+
+```{r EJ1.0}
+
+crime<-data.frame(crimtab)
+dim(crime)
+
+```
+
+Como podemos ver, el dataset `crime` contiene `r dim(crime)[1] ` filas y `r dim(crime)[2] ` columnas.Seguidamente seleccionamos una muestra  de
+30 casos sin reemplazo:
+
+```{r EJ1.1}
+
+#Selección de la muestra
+
+#genera semilla aleatoria
+set.seed(1)
+muestramia<- sample(1:nrow(crime),30,replace=FALSE)
+muestramia
+
+#Asignar los elementos de la muestra al data frame de datos
+crimemuestramia<- crime[muestramia, ]
+
+head(crimemuestramia)
+
+```
+
+--------------------------------------------------------------------------
+
+### Ejercicio 2 
+
+#### Selección de muestras sistemáticas(Instalación del paquete  `SamplingUtils`)
+
+Para el ejemplo del muestreo complejo utilizaremos la función `sys.sample` del paquete `SamplingUtil`.Para instalar este paquete, se debe inicialmente instalar el paquete `devtools` ya que no se encuentra en CRAN.Las instrucciones son las siguientes:
+
+**Instalar devtools:**`install.packages("devtools")`   
+**Cargar libreria:** `library(devtools)`     
+
+**Instalar SamplingUtils:**`install_github("DFJL/SamplingUtils")`  
+
+De esta manera podemos proceder a generar la muestra sistemática:
+
+```{r EJ1.2}
+
+#Cargar libreria:
+
+library(SamplingUtil)
+
+muestrasis<- sys.sample(nrow(crime),30)
+muestrasis
+
+#Asignar los elementos de la muestra al data frame de datos
+crimemuestrasis<- crime[muestrasis, ]
+
+head(crimemuestrasis)
+
+```
+
+--------------------------------------------------------------------------------
+
+### Ejercicio 3
+
+#### Cálculo de tamaños de muestra
+
+En este tutorial veremos tres variantes para cálculo de tamaño muestral asumiendo MIA.Para esto, utilizaremos la data de la ENAHO 2013 y la función `nsize()` incluída en el paquete `SamplingUtil`. 
+    
+1. **Error relativo para variables continuas.**  
+
+Como variable continua se utilizará la variable **TamHog**, se desea conocer el tamaño de muestra para que el error relativo no supere el 5%, con un alpha de 5%.  
 
 
-![alt text](https://www.dropbox.com/s/aes3xp4xs2zrpx7/Captura1.png?dl=1)
+```{r EJ3.1,message=FALSE}
 
+#Cálculo del tamaño de muestra con error relativo
+
+#Error relativo
+r<-0.05
+
+#Generando df de ENAHO2013 a nivel de hogar
+library(dplyr)
+df<- ENAHO2013 %.%
+  mutate(TamHog=as.numeric(TamHog),
+         phu=ifelse(TamHog>1,0,1)) %.%
+  select(FACTOR:ZONA,TamHog,phu,-REGION) %.%
+  group_by(SEGMENTO,CUESTIONARIO,HOGAR,ZONA) %.%
+  summarise(TamHog=mean(TamHog),
+            phu=mean(phu)) %.%
+  mutate(id=paste0(SEGMENTO,CUESTIONARIO,HOGAR,ZONA))
+
+nsizeR<- nsize(x=df$TamHog,r=r,alpha=0.05)
+
+nsizeR
+
+```
+
+2. **Error absoluto para variables continuas.**  
+
+```{r EJ3.2}
+
+#Cálculo del tamaño de muestra con error absoluto
+
+#Igualar el error absoluto con el error relativo
+
+abs<-mean(df$TamHog)*r
+
+nsizeA<- nsize(x=df$TamHog,abs=abs,alpha=0.05)
+
+nsizeA
+
+```
+
+3. **Error relativo para variables dicotómicas.**    
+
+Para el ejemplo de proporciones, se creará la variable Proporción de Hogares Unipersonales:   
+
+```{r EJ3.3}
+
+#Cálculo de tamaño de muestra para proporción
+nsizeP<- nsize(x=df$phu,abs=0.02,alpha=0.05)
+
+nsizeP
+
+
+```
+
+
+#### Cálculo de tamaños de muestra estratificada
+
+1. **Asignación proporcional.**  
+
+```{r EJ3.4}
+
+#Cálculo de las proporciones por estrato
+
+Estratos<- df %.%
+  select(ZONA,TamHog) %.%
+  group_by(ZONA) %.%
+  summarise(n=n(),
+            s=sd(TamHog)) %.%
+  mutate(p=n/sum(n))
+
+Estratos
+
+#Asignación de la muestra proporcional a los estratos
+nziseProp<-nstrata(nsizeR[[2]],Estratos[,4],method="proportional")
+
+nziseProp
+
+```
+
+1. **Asignación óptima.**  
+
+```{r EJ3.5}
+
+
+#Asignación de la muestra óptima a los estratos
+
+#Costo de entrevista por estrato
+ch<-c(5,10)
+
+nstrata(nsizeR[[2]],Estratos[,4],Estratos[,3],ch,method="optimal")
+
+
+```
+
+
+
+1. **Asignación de Neyman.**  
+
+```{r EJ3.6}
+
+
+#Asignación de la muestra óptima a los estratos(costos iguales)
+
+nstrata(nsizeR[[2]],Estratos[,4],Estratos[,3],method="neyman")
+
+
+```
+
+
+--------------------------------------------------------------------------------
+
+
+### Ejercicio 4
+
+#### Cálculo de intervalos de confianza asumiendo MIA     
+
+En R existen múltiples posibilidades de calcular los intervalos de confianza.Se utilizará el paquete `DescTools` para este propósito.Este paquete contiene muchas funciones misceláneas de las tareas estadísticas típicas.   
+
+Calcularemos el intervalo de confianza para la media del Tamaño del hogar, con el tamaño de muestra obtenida en el ejercicio anterior y posteriormente se comparará el error obtenido(suponiendo que el valor verdadero es el de total de la encuesta)     
+
+```{r 4.1}
+
+#genera semilla aleatoria
+set.seed(1)
+muestra<- sample(1:nrow(df),nsizeR[[2]],replace=FALSE)
+
+#Asignar los elementos de la muestra al data frame de datos
+muestra<- df[muestra,]
+
+#Carga de paquete DescTools
+
+library(DescTools)
+
+#Intervalos de confianza 95% clásicos
+
+ICTamHog<- MeanCI(muestra$TamHog, trim = 0,conf.level = 0.95, na.rm = FALSE)
+
+ICTamHog
+
+#Media del total de la encuesta
+mean(df$TamHog)
+
+#Diferencia relativa
+
+difR<-paste0(abs(round((ICTamHog[1]-mean(df$TamHog))/mean(df$TamHog),3))*100,"%")
+
+```
+
+De esta manera, con este ejercicio comprobamos que el valor estimado cumple con los requisitos del error relativo deseado en el cálculo del tamaño muestral, ya que la diferencia fue de **`r difR`** inferior al `r r*100 ` % deseado.
+
+#### Selección de muestra con ppt(Paquete `pps`)
+
+Hemos abarcado aspectos básicos del muestreo de elementos.A partir de ahora veremos algunos ejemplos de muestreo complejo.    
+
+Existen diversos paquetes para selecciones de muestras complejas en R, como el `sampling` o el `samplingbook`.En este caso se utilizará el `pps` que se concentra en muestreo mediante ppt y permite la selección sistemática estratificada.     
+
+En el siguiente ejercicio se seleccionará una muestra de UPM utilizando como tamaño la cantidad de hogares, estratificada por Zona,utilizando como base el tamaño de muestra ya calculado para la variable Tamaño del hogar.  
+
+Se debe obtener una muestra proporcional para cada estrato y seleccionar en cada conglomerado una submuestra de 5 hogares.
+
+```{r 5.1}
+
+#Generar el dataframe de UPMS y su respectivo tamaño
+
+UPMs<- df %.%
+  mutate(TamHog=as.numeric(TamHog)) %.%
+  select(SEGMENTO,ZONA,TamHog) %.%
+  group_by(SEGMENTO,ZONA) %.%
+  summarise(Mta=n()) %.%
+  arrange(ZONA)
+
+head(UPMs)
+
+#Se asigna proporcionalmente la muestra a cada estrato
+
+#Recordemos la distribución proporcional de los estratos:
+Estratos
+
+nurbano<- ceiling(nsizeR[[2]]*Estratos[1,4])
+nrural<- ceiling(nsizeR[[2]]*Estratos[2,4])
+
+nurbano;nrural
+
+#Cálculo del número de UPMs por estrato
+b<-5
+aurbano<- ceiling(nurbano/b)
+arural<- ceiling(nrural/b)
+
+#Unir en un solo objeto para facilitar input de función
+asizeppt<-rbind(aurbano,arural)
+asizeppt
+
+#Selección de la muestra con PPT(sistemática)
+library(pps)
+muestrappt<-ppssstrat(UPMs$Mta,UPMs$ZONA,asizeppt)
+muestraUPMs<-UPMs[muestrappt,]
+
+#Muestra de la selección
+head(muestraUPMs)
+tail(muestraUPMs)
+
+#Verificar selección por estrato
+Freq(muestraUPMs$ZONA)
+
+#Procedimiento para seleccionar submuestras en cada cluster de tamaño fijo
+
+#Listado de segmentos seleccionados
+segs<- unique(muestraUPMs$SEGMENTO)
+sample<- list()
+
+#Identifica el número de columna del id(se requiere para el ciclo)
+
+idcolnum<-which( colnames(df)=="id" )
+
+#Ciclo para seleccionar la muestra en cada segmento
+for(i in 1:length(segs)){
+  subsample<-df[which(df$SEGMENTO==segs[i]),]
+  sample[[i]]<-sys.sample(nrow(subsample),b)
+ #Previene de los números que se pasan del total del segmento
+  #if(sample[[i]][b]>nrow(subsample)){
+  #  sample[[i]][b]<-1
+  #  }
+ #Asigna en cada elemento de las submuestras los elem. seleccionados
+ sample[[i]]<-subsample[unlist(sample[[i]]),idcolnum]
+ }
+
+#Genera el data frame de ids seleccionados(ya que estaban en una lista)
+sampledf<-data.frame(id=unlist(sample))
+
+#Uniendo el data frame de datos con la muestra seleccionada mendiante la llave creada
+muestrappt<-inner_join(unique(sampledf),unique(df),by="id")
+
+Freq(muestrappt$ZONA)
+
+```
+
+
+### Instalación del paquete ` survey `    
+
+La instrucción `install.packages("survey")` instalará el paquete que se utilizará en este tutorial para el cálculo de errores en muestras complejas.   
+
+Seguidamente cargamos el paquete con la instrucción ` library(survey)`.    
+
+
+## Sesión de R
+
+
+```{r session}
+
+sessionInfo()
+
+```
