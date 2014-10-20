@@ -1,28 +1,15 @@
 ---
+title: "Tutorial de muestreo en R"
+author: "Felipe Jiménez"
+date: '`r as.character(format(Sys.Date(), format="%B %d, %Y"))`'
 output:
-  knitrBootstrap::bootstrap_document:
-    title: "Introducción al muestreo complejo en R"
-    theme: flatly
-    highlight: github
-    theme.chooser: TRUE
-    highlight.chooser: TRUE
+  slidy_presentation:
+    highlight: kate
 ---
-
-#Tutorial de muestreo en R
-**Fecha: `r as.character(format(Sys.Date(), format="%B %d, %Y"))`**    
-
-**Por Felipe Jiménez**    
 
 ##Introducción   
 
-El presente tutorial tiene como objetivo principal el introducir al usuario en el muestreo simple y  complejo en el ambiente de programación analítica R.Se cubren los siguientes temas:    
- 
-* La selección de tamaños de muestra simples(`base` y `dplyr`),     
-* selección sistemática y cálculo de tamaños de muestra(`SamplinUtil`),        
-* cálculo de intervalos de confianza(`DescTools`),    
-* selección de muestras con PPT (`pps`),    
-* Muestreo complejo con el paquete ` survey `.    
-* Comparación de los resultados arrojados en R con información oficial de la Encuesta de Hogares del INEC.     
+El presente tutorial tiene como objetivo principal el introducir al usuario en el muestreo simple y  complejo en el ambiente de programación analítica R.Se inicia desde la selección de tamaños de muestra simples(`base` y `dplyr`), selección sistemática y cálculo de tamaños de muestra(`SamplinUtil`), cálculo de intervalos de confianza(`DescTools`).También se hará referencia a otros paquetes para selección de muestras con PPT como `pps`.Finalmente se realizarán estimaciones de errores muestrales con el paquete ` survey ` , comparando los resultados arrojados con información oficial de la Encuesta de Hogares del INEC. 
 
 ##Configuración de R y Rstudio
 
@@ -38,9 +25,7 @@ Una vez abierto el nuevo documento R markdown, guardarlo y a continuación borra
 
 ----------------------------------------------------------------------------- 
 
-## Ejercicios
-
-### Selección de muestras simples
+## Selección de muestras simples
 
 **Muestreo irrestricto Aleatorio[(MIA)](http://www.virtual.unal.edu.co/cursos/sedes/manizales/4030006/lecciones/capituloseis/6_5.html)**:    
 
@@ -62,6 +47,10 @@ Como podemos ver, el dataset `crime` contiene `r dim(crime)[1] ` filas y `r dim(
 
 #Selección de la muestra
 
+#genera semilla aleatoria
+
+set.seed(1)
+
 #Tamaño de la muestra
 n<-30
 
@@ -75,7 +64,9 @@ head(crimemuestramia)
 
 ```
 
-#### Selección de muestras simples con `dplyr`
+----------------------------------------------------------------------------- 
+
+## Selección de muestras simples con `dplyr`
 
 Una forma más sencilla de obtener una muestra es con el paquete `dplyr`.Este paquete es sumamente útil para el tratamiento de datos, adicionalmente contiene una función para obtener muestras simples de un data frame:         
 
@@ -105,7 +96,7 @@ head(crimemuestramia4);dim(crimemuestramia4)
 
 --------------------------------------------------------------------------
 
-### Selección de muestras sistemáticas(Instalación del paquete  `SamplingUtils`)
+## Selección de muestras sistemáticas(Instalación del paquete  `SamplingUtils`)
 
 Para el ejemplo del muestreo sistemático utilizaremos la función `sys.sample` del paquete `SamplingUtil`.Para instalar este paquete, se debe inicialmente instalar el paquete `devtools` ya que no se encuentra en CRAN.Las instrucciones son las siguientes:
 
@@ -137,11 +128,11 @@ head(crimemuestrasis)
 
 --------------------------------------------------------------------------------
 
-### Tamaños de muestra simples
+## Tamaños de muestra simples
 
 En este tutorial veremos tres variantes para cálculo de tamaño muestral asumiendo MIA.Para esto, utilizaremos la data de la ENAHO 2013 y la función `nsize()` incluída en el paquete `SamplingUtil`.   
 
-Como variable continua se utilizará la Cantidad de personas del hogar (**TamHog**), para el ejemplo de proporciones, se creará la variable Proporción de Hogares Unipersonales.    
+Como variable continua se utilizará la variable **TamHog**(Cantidad de personas del hogar), Para el ejemplo de proporciones, se creará la variable Proporción de Hogares Unipersonales.    
     
 1. **Error relativo para variables continuas.**  
 
@@ -149,7 +140,12 @@ se desea conocer el tamaño de muestra para que el error relativo no supere el 5
 
 
 ```{r EJ3.1,message=FALSE}
-  
+
+#Cálculo del tamaño de muestra con error relativo
+
+#Error relativo
+r<-0.05
+
 #Generando df de ENAHO2013 a nivel de hogar
 
 df<- ENAHO2013 %.%  #Define nuevo data frame
@@ -160,12 +156,6 @@ df<- ENAHO2013 %.%  #Define nuevo data frame
   summarise(TamHog=mean(TamHog), #Cálculo de variables sumarizadas.
             phu=mean(phu)) %.%
   mutate(id=paste0(SEGMENTO,CUESTIONARIO,HOGAR,ZONA)) #Genera id único para uso posterior.
-
-
-#Cálculo del tamaño de muestra con error relativo
-
-#Error relativo
-r<-0.05
 
 nsizeR<- nsize(x=df$TamHog,r=r,alpha=0.05)
 
@@ -189,7 +179,7 @@ nsizeA
 
 ```
 
-3. **Error relativo para variables dicotómicas.**    
+3. **Error absoluto para variables dicotómicas.**    
 
 
 ```{r EJ3.3}
@@ -201,8 +191,9 @@ nsizeP
 
 ```
 
+----------------------------------------------------------------------------- 
 
-### Tamaños de muestra estratificados
+## Tamaños de muestra estratificados
 
 1. **Asignación proporcional.**  
 
@@ -255,7 +246,7 @@ nsizeNeyman
 
 --------------------------------------------------------------------------------
 
-### Cálculo de intervalos de confianza asumiendo MIA     
+## Cálculo de intervalos de confianza asumiendo MIA     
 
 En R existen múltiples posibilidades de calcular los intervalos de confianza.Se utilizará el paquete `DescTools` para este propósito.Este paquete contiene muchas funciones misceláneas de las tareas estadísticas típicas.   
 
@@ -288,8 +279,9 @@ difR<-paste0(abs(round((ICTamHog[1]-mean(df$TamHog))/mean(df$TamHog),3))*100,"%"
 
 De esta manera, con este ejercicio comprobamos que el valor estimado cumple con los requisitos del error relativo deseado en el cálculo del tamaño muestral, ya que la diferencia fue de **`r difR`** inferior al `r r*100 ` % deseado.
 
+--------------------------------------------------------------------------------
 
-### Selección de muestra con ppt(Paquete `pps`)
+## Selección de muestra con ppt(Paquete `pps`)
 
 Hemos abarcado aspectos básicos del muestreo de elementos.A partir de ahora veremos algunos ejemplos de muestreo complejo.    
 
@@ -315,12 +307,17 @@ head(UPMs)
 #Se asigna proporcionalmente la muestra a cada estrato
 
 #Recordemos la distribución proporcional de los estratos:
-nsizeProp
+Estratos
+
+nurbano<- ceiling(nsizeR[[2]]*Estratos[1,4])
+nrural<- ceiling(nsizeR[[2]]*Estratos[2,4])
+
+nurbano;nrural
 
 #Cálculo del número de UPMs por estrato
 b<-5
-aurbano<- ceiling(nsizeProp[1]/b)
-arural<- ceiling(nsizeProp[2]/b)
+aurbano<- ceiling(nurbano/b)
+arural<- ceiling(nrural/b)
 
 #Unir en un solo objeto para facilitar input de función
 asizeppt<-rbind(aurbano,arural)
@@ -372,10 +369,9 @@ Freq(muestrappt$ZONA)
 
 ```
 
+--------------------------------------------------------------------------------
 
-### Diseños de muestreo Complejos
-
-#### Especificación diseños muestrales complejos(paquete `survey`)
+## Especificación diseños muestrales complejos(paquete `survey`)
 
 Un paquete robusto para el cálculo correcto de estadísticos en diseños complejos es el `survey`.A continuación se ejemplifica la función `svydesign`, la cuál establece los diferentes parámetros para poder calcular los errores muestrales adecuadamente.Inicialmente utilizaremos la muestra con ppt seleccionada en el ejercicio anterior.         
 
@@ -425,7 +421,9 @@ summary(design1)
 
 ```
 
-#### Estadísticos en diseños muestrales complejos
+----------------------------------------------------------------------------- 
+
+## Estadísticos en diseños muestrales complejos
 
 ```{r EJ 6.2,message=FALSE}
 
@@ -450,7 +448,9 @@ difRc<-paste0(abs(round((TamHogmc[1]-mean(df$TamHog))/mean(df$TamHog),3))*100,"%
 
 De esta manera, con este ejercicio comprobamos que el valor estimado cumple con los requisitos del error relativo deseado en el cálculo del tamaño muestral, ya que la diferencia fue de **`r difRc`** inferior al `r r*100 ` % deseado.
 
-#### Ejemplo con diseño complejo real
+----------------------------------------------------------------------------- 
+  
+## Ejemplo con diseño complejo real
 
 Finalmente, se desarrollará un ejemplo con un diseño complejo real,utilizando la ENAHO 2012.   
 
@@ -491,6 +491,7 @@ summary(design2)
 
 #Calculando estadísticos de Pobreza por hogar nacionales
 
+
 #Porcentaje de pobreza
 pobremc<- svymean(~pobre,design=design2,deff=TRUE,na.rm=TRUE)
 
@@ -515,16 +516,11 @@ confint(pobretmc)
 #Coeficiente de variación
 cv(pobretmc)
 
-#Estimación de quantiles(Ingreso per cápita)
+#Estimación de quantiles
 ingresoq<- svyquantile(~Ingreso,quantile= seq(0.2,1,0.2),design=design2, deff=TRUE,na.rm=TRUE)
-
-ingresoq
 
 #Cálculo de razón(Profesionales/Técnicos)
 ptratio<- svyratio(~Profesionales, ~Tecnicos, design=design2, deff=TRUE,na.rm=TRUE)
-
-ptratio
-
 #Efecto del diseño
 deff(ptratio)
 #Intervalo de confianza
@@ -586,7 +582,9 @@ stargazer(pobremZR, type="html",summary=FALSE,
 ```
 
 
-#### Comparativa de las estimaciones publicadas y estimadas en el ejercicio     
+----------------------------------------------------------------------------- 
+
+## Comparativa de las estimaciones publicadas y estimadas en el ejercicio     
 
 Para comparar la calidad de las estimaciones, se realizará una comparación entre la medición puntual de % de hogares pobres por Región.[Acá(página 68 del documento)](https://www.dropbox.com/s/psqdvbt8r4nwcja/Resultados%20Generales%20ENAHO-2012.pdf?dl=0) se encuentra el resultado oficial.       
 
@@ -645,6 +643,8 @@ pobreplot
 
 ```
 
+--------------------------------------------------------------------------------
+
 ## Resumen  de las funciones más relevantes utilizadas
 
 Paquete|Tipo |Función
@@ -666,6 +666,7 @@ survey |Estimación compleja(Intervalo)|`confint(Objeto de svymean,svyratio,svyt
 survey |Estimación compleja(Coeficiente de variación)|`cv(Objeto de svymean,svyratio,svytotal)`
 survey |Estimación compleja(Efecto del diseño)|`deff(Objeto de svymean,svyratio,svytotal)`
 
+--------------------------------------------------------------------------------
 
 ## Sesión de R
 
@@ -674,20 +675,3 @@ survey |Estimación compleja(Efecto del diseño)|`deff(Objeto de svymean,svyrati
 sessionInfo()
 
 ```
-
-## Referencias
-
-```{r Ref,echo=FALSE,message=FALSE,results="asis",warning=FALSE}
-
-library(knitcitations)
-
-survey <- citep("10.1002/9780470580066")
-#MIA<- citep("http://www.virtual.unal.edu.co/cursos/sedes/manizales/4030006/lecciones/capituloseis/6_5.html")
-#ENAHO12<-citep("http://www.inec.go.cr/anda4/index.php/catalog/130")
-#ENAHO13<-citep("http://www.inec.go.cr/anda4/index.php/catalog/137")
-
-bibliography()
-
-
-```
-
