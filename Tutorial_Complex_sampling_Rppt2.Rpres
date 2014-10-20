@@ -1,0 +1,783 @@
+<style>
+.footer {
+color: black;
+background: #E8E8E8;
+position: fixed;
+top: 90%;
+text-align:center;
+width:100%;
+}
+.midcenter {
+position: fixed;
+top: 50%;
+left: 50%;
+}
+.small-code pre code {
+font-size: 1em;
+}
+.reveal h3 {
+word-wrap: normal;
+-moz-hyphens: none;
+}
+.reveal h1 {
+word-wrap: normal;
+-moz-hyphens: none;
+}
+
+.blue .reveal .state-background {
+background: #E8E8E8;
+}
+.blue .reveal h1,
+.blue .reveal h2,
+.blue .reveal p {
+color: steel blue;
+}
+
+.exclaim .reveal .state-background {
+  background: black;
+} 
+
+.exclaim .reveal h1,
+.exclaim .reveal h2,
+.exclaim .reveal p {
+  color: white;
+}
+
+</style>
+
+Tutorial de muestreo en R
+========================================================
+author: Felipe Jiménez
+date: `r format(Sys.Date(), "%B %d, %Y")`
+autosize: true
+transition: rotate
+transition-speed: slow
+
+Contenido
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+- Introducción 
+- Configuración de R y Rstudio
+- Ejercicios
+- Resumen de funciones
+
+
+Introducción
+====================
+type:alert
+transition: rotate
+incremental: true
+
+> **Objetivo:** 
+- El presente tutorial tiene como objetivo principal el introducir al usuario en el muestreo simple y  complejo en el ambiente de programación analítica R.Se inicia desde la selección de tamaños de muestra simples(`base` y `dplyr`), selección sistemática y cálculo de tamaños de muestra(`SamplinUtil`), cálculo de intervalos de confianza(`DescTools`).También se hará referencia a otros paquetes para selección de muestras con PPT como `pps`.Finalmente se realizarán estimaciones de errores muestrales con el paquete ` survey ` , comparando los resultados arrojados con información oficial de la Encuesta de Hogares del INEC.   
+
+==========================================================
+title:false
+type: blue
+id: slide1
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:140%">Configuración de R y Rstudio</div>
+
+
+========================================================
+transition: fade
+
+El primer paso para iniciar con el tutorial es instalar [la consola de R](http://cran.rstudio.com/)(En el triste caso de aún no contar con él).   
+
+Posteriormente, es altamente recomendado utilizar el IDE [Rstudio](http://www.rstudio.com/products/rstudio/download/), para una mayor facilidad en el desarrollo de las aplicaciones.    
+
+Una vez con la instalación de nuestras dos herramientas, procedemos a crear un nuevo documento [Rmarkdown](http://rmarkdown.rstudio.com/) Y escogemos las opciones por defecto, como se ilustra en la siguiente figura:
+
+========================================================
+transition: fade
+
+
+![Rmarkdown](https://www.dropbox.com/s/aes3xp4xs2zrpx7/Captura1.png?dl=1)
+
+
+Una vez abierto el nuevo documento R markdown, guardarlo y a continuación borrar el código que trae por defecto como ejemplo, a excepción del encabezado encerrado con tres slash (`---`) al inicio del documento.
+
+
+==========================================================
+title:false
+type: blue
+id: slide1
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:140%">EJERCICIOS</div>
+
+1-SELECCIÓN DE MUESTRAS SIMPLES(1/2)
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**Muestreo irrestricto Aleatorio[(MIA)](http://www.virtual.unal.edu.co/cursos/sedes/manizales/4030006/lecciones/capituloseis/6_5.html)**:    
+
+El R Base contiene la útil función `sample` en la que se pueden obtener muestras aleatorias con o sin reemplazo de manera sencilla.
+
+Vamos a cargar un dataset para ejemplificar y a cuantificar sus dimensiones:
+
+```{r EJ1.0}
+
+crime<-data.frame(crimtab)
+dim(crime)
+
+```
+
+Como podemos ver, el dataset `crime` contiene `r dim(crime)[1] ` filas y `r dim(crime)[2] ` columnas.Seguidamente seleccionamos una muestra  de
+30 casos sin reemplazo:    
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**1-SELECCIÓN DE MUESTRAS SIMPLES(2/2)**
+```{r EJ1.1}
+
+#Selección de la muestra
+
+#genera semilla aleatoria
+
+set.seed(1)
+
+#Tamaño de la muestra
+n<-30
+
+#Seleccionar registros
+muestramia<- sample(1:nrow(crime),n,replace=FALSE)
+
+#Asignar los elementos de la muestra al data frame de datos
+crimemuestramia<- crime[muestramia, ]
+
+head(crimemuestramia)
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**1-SELECCIÓN DE MUESTRAS SIMPLES CON `dplyr`**
+
+Una forma más sencilla de obtener una muestra es con el paquete `dplyr`.Este paquete es sumamente útil para el tratamiento de datos, adicionalmente contiene una función para obtener muestras simples de un data frame:         
+
+```{r 1.2.1,message=FALSE}
+
+library(dplyr)
+
+#Muestra sin reemplazo
+crimemuestramia2<- crime %.%
+  sample_n(size=n,replace=FALSE)
+
+head(crimemuestramia2)
+
+
+```
+
+
+========================================================
+transition: rotate
+
+```{r 1.2.2,message=FALSE}
+
+#Muestra con pesos
+crimemuestramia3<- crime %.%
+  sample_n(size=n,weight=Freq)
+
+head(crimemuestramia3)
+
+
+```
+
+
+========================================================
+transition: rotate
+
+```{r 1.2.3,message=FALSE}
+
+
+#Muestra con una proporción de casos
+crimemuestramia4<- crime %.%
+  sample_frac(0.05)
+
+head(crimemuestramia4);dim(crimemuestramia4)
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**2-SELECCIÓN DE MUESTRAS SISTEMÁTICAS(1/2)**
+
+Para el ejemplo del muestreo sistemático utilizaremos la función `sys.sample` del paquete `SamplingUtil`.Para instalar este paquete, se debe inicialmente instalar el paquete `devtools` ya que no se encuentra en CRAN.Las instrucciones son las siguientes:
+
+**Instalar devtools:**`install.packages("devtools")`   
+**Cargar libreria:** `library(devtools)`     
+
+**Instalar SamplingUtils:**`install_github("DFJL/SamplingUtils")`  
+
+De esta manera podemos proceder a generar la muestra sistemática:
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**2-SELECCIÓN DE MUESTRAS SISTEMÁTICAS(2/2)**
+```{r EJ1.2.4}
+
+#Cargar libreria:
+
+library(SamplingUtil)
+
+muestrasis<- sys.sample(nrow(crime),30)
+
+#Asignar los elementos de la muestra al data frame de datos
+crimemuestrasis<- crime[muestrasis, ]
+
+head(crimemuestrasis)
+
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**3-TAMAÑOS DE MUESTRAS SIMPLES(1/3)**
+
+En este tutorial veremos tres variantes para cálculo de tamaño muestral asumiendo MIA.
+- Error relativo para variables continuas
+- Error absoluto para variables continuas
+- Error absoluto para variables dicotómicas
+
+Para esto, utilizaremos la data de la ENAHO 2013 y la función `nsize()` incluída en el paquete `SamplingUtil`.   
+
+Como variable continua se utilizará la variable **TamHog**(Cantidad de personas del hogar), Para el ejemplo de proporciones, se creará la variable Proporción de Hogares Unipersonales.    
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**3.1-Error relativo para variables continuas.**  
+
+```{r EJ3.1,message=FALSE}
+
+#Generando df de ENAHO2013 a nivel de hogar
+
+#Define nuevo data frame
+df<- ENAHO2013 %.%  
+#Convierte TamHog a numérica
+  mutate(TamHog=as.numeric(TamHog), 
+#Crea variable de prop Hog. Unipersonales.
+         phu=ifelse(TamHog>1,0,1)) %.% 
+#Selecciona variables de interés.
+  select(FACTOR:ZONA,TamHog,phu,-REGION) %.% 
+#Genera esquema de agrupación.
+  group_by(SEGMENTO,CUESTIONARIO,HOGAR,ZONA) %.% 
+#Cálculo de variables sumarizadas.
+  summarise(TamHog=mean(TamHog), 
+            phu=mean(phu)) %.%
+#Genera id único para uso posterior.
+  mutate(id=paste0(SEGMENTO,CUESTIONARIO,
+                   HOGAR,ZONA)) 
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**3.1-Error relativo para variables continuas.**  
+
+se desea conocer el tamaño de muestra para que el error relativo no supere el 5%, con un alpha de 5%.  
+
+```{r EJ3.1.2,message=FALSE}
+
+#Cálculo del tamaño de muestra con error relativo
+
+#Error relativo
+r<-0.05
+
+nsizeR<- nsize(x=df$TamHog,r=r,alpha=0.05)
+
+nsizeR
+
+```
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**3.2-Error absoluto para variables continuas.**  
+
+```{r EJ3.2}
+
+#Cálculo del tamaño de muestra con error absoluto
+
+#Igualar el error absoluto con el error relativo
+
+abs<-mean(df$TamHog)*r
+
+nsizeA<- nsize(x=df$TamHog,abs=abs,alpha=0.05)
+
+nsizeA
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**3.3.-Error absoluto para variables dicotómicas.**    
+
+
+```{r EJ3.3}
+
+#Cálculo de tamaño de muestra para proporción
+nsizeP<- nsize(x=df$phu,abs=0.02,alpha=0.05)
+
+nsizeP
+
+```
+
+
+==========================================================
+title:false
+type: blue
+id: slide2
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:110%">4-TAMAÑOS DE MUESTRA EN ESTRATOS</div>
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**4.1-Asignación proporcional.**  
+
+```{r EJ3.4.1}
+
+#Cálculo de las proporciones por estrato
+
+Estratos<- df %.%
+  select(ZONA,TamHog) %.%
+  group_by(ZONA) %.%
+  summarise(n=n(),
+            s=sd(TamHog)) %.%
+  mutate(p=n/sum(n))
+
+Estratos
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+```{r EJ3.4.2}
+
+#Asignación de la muestra proporcional a los estratos
+nsizeProp<-nstrata(nsizeR[[2]],
+                   Estratos[,4],
+                   method="proportional")
+
+nsizeProp
+
+```
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**4.2-Asignación óptima.**  
+
+```{r EJ3.5}
+
+#Asignación de la muestra óptima a los estratos
+
+#Costo de entrevista por estrato
+ch<-c(5,10)
+
+nsizeOpt<-nstrata(nsizeR[[2]],Estratos[,4],
+                  Estratos[,3],
+                  ch,
+                  method="optimal")
+nsizeOpt
+
+```
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+**4.3-Asignación de Neyman.**  
+
+```{r EJ3.6}
+
+
+#Asignación de la muestra óptima a los estratos(asume costos iguales)
+
+nsizeNeyman<-nstrata(nsizeR[[2]],
+                     Estratos[,4],
+                     Estratos[,3],
+                     method="neyman")
+nsizeNeyman
+
+```
+
+
+==========================================================
+title:false
+type: blue
+id: slide3
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:110%">4-CÁLCULO DE INTERVALOS DE CONFIANZA</div>
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+- En R existen múltiples posibilidades de calcular los intervalos de confianza.Se utilizará el paquete `DescTools` para este propósito.Este paquete contiene muchas funciones misceláneas de las tareas estadísticas típicas.   
+
+- Calcularemos el intervalo de confianza para la media del Tamaño del hogar, con el tamaño de muestra obtenida en el ejercicio anterior y posteriormente se comparará el error obtenido(suponiendo que el valor verdadero es el de total de la encuesta)   
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+```{r 4.1}
+
+#Muestra sin reemplazo
+muestra<- df %.%
+  sample_n(size=nsizeR[[2]],replace=FALSE)
+
+#Carga de paquete DescTools
+
+library(DescTools)
+
+#Intervalos de confianza 95% clásicos
+
+ICTamHog<- MeanCI(muestra$TamHog, trim = 0,conf.level = 0.95, na.rm = FALSE)
+
+ICTamHog
+
+#Media del total de la encuesta
+mean(df$TamHog)
+
+```
+
+- De esta manera, con este ejercicio comprobamos que el valor estimado cumple con los requisitos del error relativo deseado en el cálculo del tamaño muestral, ya que la diferencia fue de **`r paste0(abs(round((ICTamHog[1]-mean(df$TamHog))/mean(df$TamHog),3))*100,"%") `** inferior al `r r*100 ` % deseado.
+
+
+==========================================================
+title:false
+type: blue
+id: slide4
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:110%">4-SELECCIÓN CON PPT</div>
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+- Se utilizará el paquete `pps` que se concentra en muestreo mediante ppt y permite la selección sistemática estratificada.     
+
+- **Mta**= la cantidad de hogares por segmento, 
+- estratificada por Zona,
+- utilizando como base el tamaño de muestra ya calculado para la variable Tamaño del hogar.  
+- Se debe obtener una muestra proporcional para cada estrato y seleccionar en cada conglomerado una submuestra de 5 hogares.   
+
+```{r 5.1.1}
+
+#Generar el dataframe de UPMS y su respectivo tamaño
+
+UPMs<- df %.%
+  mutate(TamHog=as.numeric(TamHog)) %.%
+  select(SEGMENTO,ZONA,TamHog) %.%
+  group_by(SEGMENTO,ZONA) %.%
+  summarise(Mta=n()) %.%
+  arrange(ZONA)
+
+
+```
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+```{r 5.1.2}
+
+nurbano<- ceiling(nsizeR[[2]]*Estratos[1,4])
+nrural<- ceiling(nsizeR[[2]]*Estratos[2,4])
+
+nurbano;nrural
+
+#Cálculo del número de UPMs por estrato
+b<-5
+aurbano<- ceiling(nurbano/b)
+arural<- ceiling(nrural/b)
+
+#Unir en un solo objeto para facilitar input de función
+asizeppt<-rbind(aurbano,arural)
+asizeppt
+
+
+```
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+```{r 5.1.3}
+
+#Selección de la muestra con PPT(sistemática)
+library(pps)
+muestrappt<-ppssstrat(UPMs$Mta,
+                      UPMs$ZONA,asizeppt)
+muestraUPMs<-UPMs[muestrappt,]
+
+#Verificar selección por estrato
+Freq(muestraUPMs$ZONA)
+
+```
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+```{r 5.1.4}
+
+#Procedimiento para seleccionar submuestras en cada cluster de tamaño fijo
+
+#Listado de segmentos seleccionados
+segs<- unique(muestraUPMs$SEGMENTO)
+sample<- list()
+
+#Identifica el número de columna del id(se requiere para el ciclo)
+
+idcolnum<-which( colnames(df)=="id" )
+
+#Ciclo para seleccionar la muestra en cada segmento
+for(i in 1:length(segs)){
+  subsample<-df[which(df$SEGMENTO==segs[i]),]
+  sample[[i]]<-sys.sample(nrow(subsample),b)
+ #Asigna en cada elemento de las submuestras los elem. seleccionados
+ sample[[i]]<-subsample[unlist(sample[[i]]),idcolnum]
+ }
+
+
+```
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+```{r 5.1.5}
+
+#Genera el data frame de ids seleccionados(ya que estaban en una lista)
+sampledf<-data.frame(id=unlist(sample))
+
+#Uniendo el data frame de datos con la muestra seleccionada mendiante la llave creada
+muestrappt<-inner_join(unique(sampledf),
+                       unique(df),
+                       by="id")
+
+#Verificar el procedimiento
+Freq(muestrappt$ZONA)
+
+```
+
+
+==========================================================
+title:false
+type: blue
+id: slide5
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:110%">5-DISEÑOS COMPLEJOS</div>
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+
+
+**Especificación diseños muestrales complejos(paquete `survey`)**
+
+```{r EJ 6.1,message=FALSE,include=FALSE}
+
+#Generar probabilidades
+
+#Recordemos las medidas de tamaño por UPM:
+UPMs
+
+#Cálculo de prob en Primera etapa
+
+#Estrato Urbano
+
+UPMU<- UPMs %.%
+  filter(ZONA=="Urbana") %.%
+  group_by(ZONA) %.%
+  mutate(fa=Mta/(sum(Mta)/aurbano),
+         fb=b/Mta)
+
+#Estrato Rural
+
+UPMR<- UPMs %.%
+  filter(ZONA=="Rural") %.%
+  group_by(ZONA) %.%
+  mutate(fa=Mta/(sum(Mta)/arural),
+         fb=b/Mta)
+
+#Unir ambos estratos
+
+UPMs <- rbind(UPMU,UPMR)
+
+#Incluir probabilidades en data frame de muestra
+muestrappt2<- left_join(muestrappt,UPMs,by=c("SEGMENTO","ZONA"))
+
+```
+
+
+```{r EJ 6.2,message=FALSE}
+
+#Teniendo el siguiente data frame:
+head(muestrappt2)
+
+#Cargar paquete de muestreo complejo
+library(survey)
+
+#Establecer el diseño muestral
+design1<-svydesign(data=muestrappt2,id=~SEGMENTO+id,
+                   strata=~ZONA,
+                   pps="brewer",
+                   prob=~fa+fb)
+
+#Resumen del diseño
+summary(design1)
+
+```
+
+```{r EJ 6.3,message=FALSE}
+
+#Cargar paquete de muestreo complejo
+library(survey)
+
+#Establecer el diseño muestral
+design1<-svydesign(data=muestrappt2,id=~SEGMENTO+id,
+                   strata=~ZONA,
+                   pps="brewer",
+                   prob=~fa+fb)
+
+#Resumen del diseño
+summary(design1)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Distribución de Hits por Política y score
+========================================================
+transition: rotate
+
+========================================================
+title:false
+type: blue
+id: slide1
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:140%">ANÁLISIS DE LOS MATCHS</div>
+
+Comparativa de la Distribución de Hits y matchs por score
+========================================================
+transition: fade
+
+
+Distribución de los scores por Origen
+========================================================
+transition: fade
+left: 90%
+
+
+Distribución de los scores por política
+========================================================
+transition: fade
+left: 90%
+
+
+Distribución de los scores por Lista
+========================================================
+transition: fade
+left: 90%
+
+
+==========================================================
+title:false
+type: blue
+id: slide1
+<div style="font-weight:bold; color:steel blue;position: fixed; top:60%; text-align:center;left:70%;padding:1em;font-size:140%">RESULTADOS DEL MODELO</div>
+
+
+Hits por politica,lista y proporcion de match
+========================================================
+transition: fade
+
+
+====================
+type:prompt
+transition: rotate
+incremental: true
+title:false
+
+
+Reducción general de Hits
+========================================================
+transition: fade
+
+
+Resultados de la recomendación por origen
+========================================================
+transition: fade
+
+Recomendación por Origen, Política y Lista 
+========================================================
+transition: fade
+
