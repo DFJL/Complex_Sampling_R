@@ -1,4 +1,4 @@
-Complex_Sampling_R
+Tutorial de Muestreo en R
 ==================
 
 Repositorio para archivos del trabajo de Muestreo Complejo en R.
