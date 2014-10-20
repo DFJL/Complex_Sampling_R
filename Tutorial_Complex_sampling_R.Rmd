@@ -670,7 +670,7 @@ survey |Estimación compleja(Efecto del diseño)|`deff(Objeto de svymean,svyrati
 ## Repositorio del tutorial
 
 
-[Acá](https://github.com/DFJL/Complex_Sampling_R) se encuentra el código para reproducir todos los ejercicios de este tutorial.         
+[Acá](https://github.com/DFJL/Complex_Sampling_R) se encuentra el código para reproducir todos los ejercicios de este tutorial.               
 
 
 ## Sesión de R
